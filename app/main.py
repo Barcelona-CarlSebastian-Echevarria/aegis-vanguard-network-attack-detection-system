@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from config import ROOT, DATASET_FILE
 import joblib
+import subprocess
 
 def binary_layer(X):
     '''
@@ -47,6 +48,14 @@ def attack_layer(X):
 
     return attack_map[pred]
 
+def capture(interface="Wi-Fi"):
+        subprocess.run([
+        "dumpcap",
+        "-i", interface,           
+        "-a", "duration:5",
+        "-w", "traffic.pcap"
+    ])
+
 
 def main(data):
 
@@ -63,24 +72,23 @@ def main(data):
 
 if __name__ == '__main__':
 
-    main_data = pd.read_csv(DATASET_FILE)
-
     binary_model = joblib.load(f"{ROOT}/models/layer1_xgb_pipeline.pkl")
     attack_model = joblib.load(f"{ROOT}/models/layer2_rf_smote_pipeline.pkl")
-    
-    # For Heartbleed attack (lowest count in the dataset)
-    main_data = main_data.loc[main_data["Label"] == "Heartbleed", :]
-    X = main_data.drop(columns="Label")
-    X = pd.DataFrame(np.nan_to_num(X, nan=0.0, posinf=0.0, neginf=0.0),
-                     columns=X.columns,
-                     index=X.index)
-    
-    # Detect inf and nan vals
-    print(np.isinf(X.values).any())
-    print(np.isnan(X.values).any()) 
-    
-    data_sample = main_data.sample(1)
 
-    print(data_sample['Label'])
+    main_data = pd.read_csv(DATASET_FILE)
+    def preprocessing(main_data):
+        # -- For Heartbleed attack (lowest count in the dataset) --
+        main_data = main_data.loc[main_data["Label"] == "Heartbleed", :]
+        X = main_data.drop(columns="Label")
 
+        # -- Detect and impute missing and inf datas --
+        X = pd.DataFrame(np.nan_to_num(X, nan=0.0, posinf=0.0, neginf=0.0),
+                        columns=X.columns,
+                        index=X.index)
+        # Detect inf and nan vals
+        print(np.isinf(X.values).any())
+        print(np.isnan(X.values).any()) 
+    
+    # -- Static test --
+    data_sample = X.sample(1)
     main(data_sample)
