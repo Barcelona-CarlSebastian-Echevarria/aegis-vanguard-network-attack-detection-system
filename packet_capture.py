@@ -34,6 +34,7 @@ def convert_packets(pcap_path, output_name: str):
 
     output_path = os.path.join(csv_directory, output_name)
     
+    # Terminal commands for cicflowmeter from documenatation: https://pypi.org/project/cicflowmeter/
     subprocess.run([
         "cicflowmeter",
         "-f", str(pcap_path),
