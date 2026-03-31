@@ -3,6 +3,10 @@ import numpy as np
 from config import ROOT, DATASET_FILE
 import joblib
 import subprocess
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 def binary_layer(X):
     '''
@@ -75,19 +79,9 @@ if __name__ == '__main__':
     binary_model = joblib.load(f"{ROOT}/models/layer1_xgb_pipeline.pkl")
     attack_model = joblib.load(f"{ROOT}/models/layer2_rf_smote_pipeline.pkl")
 
-    main_data = pd.read_csv(DATASET_FILE)
-    def preprocessing(main_data):
-        # -- For Heartbleed attack (lowest count in the dataset) --
-        main_data = main_data.loc[main_data["Label"] == "Heartbleed", :]
-        X = main_data.drop(columns="Label")
+    dataset = os.path.join(OUTPUT_DIR, 'flow_output.csv')
+    main_data = pd.read_csv(dataset)
 
-        # -- Detect and impute missing and inf datas --
-        X = pd.DataFrame(np.nan_to_num(X, nan=0.0, posinf=0.0, neginf=0.0),
-                        columns=X.columns,
-                        index=X.index)
-        # Detect inf and nan vals
-        print(np.isinf(X.values).any())
-        print(np.isnan(X.values).any()) 
     
     # -- Static test --
     data_sample = X.sample(1)

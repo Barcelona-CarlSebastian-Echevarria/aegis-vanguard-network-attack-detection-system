@@ -1,0 +1,5 @@
+__pycache__
+sklearn_venv
+ids_venv/
+*.csv
+*.pcap

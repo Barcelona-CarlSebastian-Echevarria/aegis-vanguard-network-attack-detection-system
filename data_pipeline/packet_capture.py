@@ -2,26 +2,30 @@ import subprocess
 import os
 from pathlib import Path
 from datetime import date
+import uuid
 
 ROOT_DIR = Path.cwd()
 pcap_path = os.path.join(ROOT_DIR, "packets_captured", "traffic1.pcap")
 
-def capture(interface="Wi-Fi"):
+def capture(interface="wlan0"):  # wlan0 = WiFi, eth0 = Ethernet. Check your system first
     target_dir = os.path.join(ROOT_DIR, "packets_captured")
     
     # Create the directory if it doesn't exist
     if not os.path.exists(target_dir):
-        os.makedirs(target_dir)
+        os.makedirs(target_dir, exist_ok=True)
 
     # Output file construction
-    output_file = os.path.join(target_dir, "traffic1.pcap")
+    output_file = os.path.join(target_dir, "traffic2.pcap")
 
     subprocess.run([
-        "dumpcap",
-        "-i", interface,           
-        "-a", "duration:5",
+        "tcpdump",
+        "-i", interface,
+        "-G", "5",          # capture for 5 seconds
+        "-W", "1",          
         "-w", output_file
-    ])
+    ], check=True)
+
+    return output_file
 
 def convert_packets(pcap_path, output_name: str):
     if not isinstance(output_name, str):
@@ -45,8 +49,13 @@ def convert_packets(pcap_path, output_name: str):
 
 
 if __name__ == '__main__':
-    # capture()
-    csv_file = convert_packets(pcap_path, 'flow_output')
-    if not os.path.exists(csv_file):
-        print(csv_file, "not found in directory")
-    print(csv_file, "successfully create")
+    pcap_file = capture("eth0")
+    if not os.path.exists(pcap_file):
+        print(pcap_file, "not found in directory")
+    print(pcap_file, "successfully created")
+
+
+    # csv_file = convert_packets(pcap_path, 'flow_output')
+    # if not os.path.exists(csv_file):
+    #     print(csv_file, "not found in directory")
+    # print(csv_file, "successfully created")
