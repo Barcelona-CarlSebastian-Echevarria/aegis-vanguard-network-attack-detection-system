@@ -78,11 +78,3 @@ if __name__ == '__main__':
 
     binary_model = joblib.load(f"{ROOT}/models/layer1_xgb_pipeline.pkl")
     attack_model = joblib.load(f"{ROOT}/models/layer2_rf_smote_pipeline.pkl")
-
-    dataset = os.path.join(OUTPUT_DIR, 'flow_output.csv')
-    main_data = pd.read_csv(dataset)
-
-    
-    # -- Static test --
-    data_sample = X.sample(1)
-    main(data_sample)

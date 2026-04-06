@@ -1,61 +1,94 @@
 import subprocess
+import pandas as pd
+import numpy as np
 import os
-from pathlib import Path
-from datetime import date
-import uuid
+from datetime import datetime
+from app.config import *
 
-ROOT_DIR = Path.cwd()
-pcap_path = os.path.join(ROOT_DIR, "packets_captured", "traffic1.pcap")
 
-def capture(interface="wlan0"):  # wlan0 = WiFi, eth0 = Ethernet. Check your system first
-    target_dir = os.path.join(ROOT_DIR, "packets_captured")
+def get_timestamp():
+    return datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+def preprocess_flows(converted_flows):
+    df_converted_flows = pd.read_csv(converted_flows, encoding='latin-1')
+    df_converted_flows = df_converted_flows.copy()
+
+    # Drop unnecessary columns
+    df_converted_flows = df_converted_flows.drop(columns=[
+        "src_ip", "dst_ip", "src_port", "dst_port",
+        "protocol", "timestamp"
+    ], errors="ignore")
+
+    # Impute values in the dataset
+    df_converted_flows = pd.DataFrame(np.nan_to_num(df_converted_flows, nan=0.0, posinf=0.0, neginf=0.0),
+                    columns=df_converted_flows.columns,
+                    index=df_converted_flows.index)
     
-    # Create the directory if it doesn't exist
-    if not os.path.exists(target_dir):
-        os.makedirs(target_dir, exist_ok=True)
+    # Detect inf and nan vals
+    if np.any(np.isinf(df_converted_flows.values)) or np.any(np.isnan(df_converted_flows.values)):
+        print("Warning: Data still contains inf or nan values")
+
+    df_converted_flows.rename(columns=RENAME_MAP, inplace=True)
+    
+    return df_converted_flows
+
+def convert_packets(pcap_path, output_name: str = None):
+    if not isinstance(output_name, str) and output_name is not None:
+        raise ValueError("outname not string") 
+
+    if not os.path.exists(OUTPUT_DIR):
+        os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     # Output file construction
-    output_file = os.path.join(target_dir, "traffic2.pcap")
+    if output_name is None:
+        file_id = get_timestamp()
+        output_name = f"flow_{file_id}"
+    output_path = os.path.join(OUTPUT_DIR, f"{output_name}.csv")
+
+    # Terminal commands for cicflowmeter from documenatation: https://pypi.org/project/cicflowmeter/
+    subprocess.run([
+        "cicflowmeter",
+        "-f", str(pcap_path),
+        "-c", output_path
+    ], check=True)
+
+    # Preprocess
+    preprocessed_df = preprocess_flows(output_path)
+    preprocessed_df.to_csv(output_path, index=False)
+
+    return output_path, preprocessed_df
+
+def capture(capture_seconds: int, interface="wlan0"):  # wlan0 = WiFi, eth0 = Ethernet. Check your system first
+    # Create the directory if it doesn't exist
+    if not os.path.exists(PCAP_DIR):
+        os.makedirs(PCAP_DIR, exist_ok=True)
+
+    # Output file construction
+    file_id = get_timestamp()
+    filename = f"traffic_{file_id}.pcap"
+    output_file = os.path.join(PCAP_DIR, filename)
 
     subprocess.run([
         "tcpdump",
         "-i", interface,
-        "-G", "5",          # capture for 5 seconds
+        "-G", str(capture_seconds),      
         "-W", "1",          
         "-w", output_file
     ], check=True)
 
     return output_file
 
-def convert_packets(pcap_path, output_name: str):
-    if not isinstance(output_name, str):
-        raise ValueError("outname not string") 
 
-    csv_directory = os.path.join(ROOT_DIR, "converted_flows")
-
-    if not os.path.exists(csv_directory):
-        os.makedirs(csv_directory)
-
-    output_path = os.path.join(csv_directory, output_name)
-    
-    # Terminal commands for cicflowmeter from documenatation: https://pypi.org/project/cicflowmeter/
-    subprocess.run([
-        "cicflowmeter",
-        "-f", str(pcap_path),
-        "-c", f"{output_path}.csv"
-    ], check=True)
-
-    return f"{output_path}.csv"  
-
-
+# Local Testing
 if __name__ == '__main__':
-    pcap_file = capture("eth0")
+    pcap_file = capture(capture_seconds=5, interface="eth0")
     if not os.path.exists(pcap_file):
-        print(pcap_file, "not found in directory")
-    print(pcap_file, "successfully created")
+        print("PCAP not found:", pcap_file)
+    else:
+        print("PCAP created:", pcap_file)
 
-
-    # csv_file = convert_packets(pcap_path, 'flow_output')
-    # if not os.path.exists(csv_file):
-    #     print(csv_file, "not found in directory")
-    # print(csv_file, "successfully created")
+    csv_path, df = convert_packets(pcap_file)
+    if not os.path.exists(csv_path):
+        print("CSV not found:", csv_path)
+    else:
+        print("CSV created:", csv_path)
