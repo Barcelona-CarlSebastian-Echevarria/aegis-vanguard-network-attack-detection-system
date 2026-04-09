@@ -52,15 +52,6 @@ def attack_layer(X):
 
     return attack_map[pred]
 
-def capture(interface="Wi-Fi"):
-        subprocess.run([
-        "dumpcap",
-        "-i", interface,           
-        "-a", "duration:5",
-        "-w", "traffic.pcap"
-    ])
-
-
 def main(data):
 
     network_status = binary_layer(data)

@@ -28,7 +28,12 @@ def preprocess_flows(converted_flows):
     if np.any(np.isinf(df_converted_flows.values)) or np.any(np.isnan(df_converted_flows.values)):
         print("Warning: Data still contains inf or nan values")
 
+    # Rename the columns as the original
     df_converted_flows.rename(columns=RENAME_MAP, inplace=True)
+    # Fix the order of the columns like the original
+    expected_order = [name for name in RENAME_MAP.values() if name in df_converted_flows.columns]
+    df_converted_flows = df_converted_flows[expected_order]
+    print(df_converted_flows.columns)
     
     return df_converted_flows
 

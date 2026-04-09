@@ -7,9 +7,14 @@ load_dotenv()
 
 ROOT = Path(__file__).resolve().parent.parent
 
-DATASET_FILE = os.getenv("DATASET_FILE", ROOT / "CIS_IDS_2017_compiled.csv")
-OUTPUT_DIR = os.getenv("OUTPUT_DIR", ROOT / "converted_flows")
-PCAP_DIR = os.getenv("PCAP_DIR", ROOT / "packets_captured")
+DATASET_FILE = Path(os.getenv("DATASET_FILE", ROOT / "CIS_IDS_2017_compiled.csv"))
+OUTPUT_DIR = Path(os.getenv("OUTPUT_DIR", ROOT / "converted_flows" / "incoming"))
+SCANNED_DIR = Path(os.getenv("SCANNED_DIR", ROOT / "converted_flows" / "scanned"))
+PCAP_DIR = Path(os.getenv("PCAP_DIR", ROOT / "packets_captured"))
+
+# Create the paths automatically as a guardrail for first run
+for folder in [OUTPUT_DIR, SCANNED_DIR, PCAP_DIR]:
+    folder.mkdir(parents=True, exist_ok=True)
 
 RENAME_MAP = {
     'flow_duration': 'Flow Duration',
