@@ -1,9 +1,17 @@
 import pandas as pd
 import numpy as np
-from config import ROOT, DATASET_FILE
 import joblib
+import subprocess
+import os
+import shutil
 
-def binary_layer(X):
+from app.config import *
+from data_pipeline.packet_capture import *
+
+from dotenv import load_dotenv
+load_dotenv()
+
+def binary_layer(X, binary_model):
     '''
     Classifies the behaviour of traffic if
     BENIGN - Normal
@@ -12,7 +20,6 @@ def binary_layer(X):
 
     X = X.copy()
     pred = binary_model.predict(X)
-    print(pred)
 
     if len(pred) == 1:
         if pred[0] == 0:
@@ -20,7 +27,7 @@ def binary_layer(X):
         return "ATTACK"
 
 # 
-def attack_layer(X):
+def attack_layer(X, attack_model):
     '''
     Classifies the type of attack detected according to the encoded map from training
     '''
@@ -43,44 +50,71 @@ def attack_layer(X):
     X = X.copy()
 
     pred = attack_model.predict(X)
-    pred = int(*pred)
-
     return attack_map[pred]
 
+def predict(df, binary_model, attack_model):
+    ''' 
+    Predict the incoming flows 
+    '''
 
-def main(data):
+    for i in range(len(df)):
+        row = df.iloc[[i]]
+        network_status = binary_layer(row, binary_model)
+        
+        if network_status == "BENIGN":
+            print(f"[{i}] BENIGN")
+            continue
+            
+        attack_type = attack_layer(row, attack_model)
+        print(f"[{i}] ATTACK: {attack_type}")
 
-    network_status = binary_layer(data)
+def main(binary_model, attack_model): 
+    '''
+    Scan incoming folder, process new flow CSVs, then move to scanned folder
+    '''
 
-    if network_status == "BENIGN":
-        print("BENIGN")
-        return
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    os.makedirs(SCANNED_DIR, exist_ok=True)
+    # Sort directories 
+    files = sorted(os.listdir(OUTPUT_DIR))  
 
-    attack_type = attack_layer(data)
-    print(attack_type)
-    return
+    for file in files:
+        if not file.startswith("flow") or not file.endswith(".csv"):
+            continue
+        # Stage the file
+        file_path = os.path.join(OUTPUT_DIR, file)
 
+        # Load CSV, then feed to model
+        try:
+            print(f"Processing: {file}")
+            df = pd.read_csv(file_path)
+
+            if not df.empty:
+                predict(df, binary_model, attack_model) 
+
+            # After the file is scanned, it will be moved to converted_flows/scanned
+            destination = os.path.join(SCANNED_DIR, file)
+            shutil.move(file_path, destination)
+            print(f"Moved to scanned: {file}")
+
+        except Exception as e:
+            print(f"Error processing {file}: {e}")
 
 if __name__ == '__main__':
 
-    main_data = pd.read_csv(DATASET_FILE)
-
     binary_model = joblib.load(f"{ROOT}/models/layer1_xgb_pipeline.pkl")
     attack_model = joblib.load(f"{ROOT}/models/layer2_rf_smote_pipeline.pkl")
-    
-    # For Heartbleed attack (lowest count in the dataset)
-    main_data = main_data.loc[main_data["Label"] == "Heartbleed", :]
-    X = main_data.drop(columns="Label")
-    X = pd.DataFrame(np.nan_to_num(X, nan=0.0, posinf=0.0, neginf=0.0),
-                     columns=X.columns,
-                     index=X.index)
-    
-    # Detect inf and nan vals
-    print(np.isinf(X.values).any())
-    print(np.isnan(X.values).any()) 
-    
-    data_sample = main_data.sample(1)
 
-    print(data_sample['Label'])
+    pcap_file = capture(capture_seconds=5, interface="eth0")
+    if not os.path.exists(pcap_file):
+        print("PCAP not found:", pcap_file)
+    print("PCAP created:", pcap_file)
 
-    main(data_sample)
+    csv_path, df = convert_packets(pcap_file)
+    if not os.path.exists(csv_path):
+        print("CSV not found:", csv_path)
+    print("CSV created:", csv_path)
+    
+    # Feed to the model
+    main(binary_model, attack_model)
+
