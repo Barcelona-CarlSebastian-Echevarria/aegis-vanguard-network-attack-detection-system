@@ -12,6 +12,9 @@ OUTPUT_DIR = Path(os.getenv("OUTPUT_DIR", ROOT / "converted_flows" / "incoming")
 SCANNED_DIR = Path(os.getenv("SCANNED_DIR", ROOT / "converted_flows" / "scanned"))
 PCAP_DIR = Path(os.getenv("PCAP_DIR", ROOT / "packets_captured"))
 
+BINARY_MODEL = Path(os.getenv("BINARY_MODEL", ROOT / "models" / "layer1_xgb_pipeline.pkl"))
+CLASSIFIER_MODEL = Path(os.getenv("CLASSIFIER_MODEL", ROOT / "models" / "layer2_rf_smote_pipeline.pkl"))
+
 # Create the paths automatically as a guardrail for first run
 for folder in [OUTPUT_DIR, SCANNED_DIR, PCAP_DIR]:
     folder.mkdir(parents=True, exist_ok=True)

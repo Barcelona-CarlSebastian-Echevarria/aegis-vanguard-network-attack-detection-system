@@ -102,9 +102,9 @@ def main(binary_model, attack_model):
 
 if __name__ == '__main__':
 
-    binary_model = joblib.load(f"{ROOT}/models/layer1_xgb_pipeline.pkl")
-    attack_model = joblib.load(f"{ROOT}/models/layer2_rf_smote_pipeline.pkl")
-
+    binary_model = joblib.load(BINARY_MODEL)
+    attack_model = joblib.load(CLASSIFIER_MODEL)
+    
     pcap_file = capture(capture_seconds=5, interface="eth0")
     if not os.path.exists(pcap_file):
         print("PCAP not found:", pcap_file)
