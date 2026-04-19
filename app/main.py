@@ -56,17 +56,28 @@ def predict(df, binary_model, attack_model):
     ''' 
     Predict the incoming flows 
     '''
+    metadata_cols = [
+        "src_ip", "dst_ip", "src_port", "dst_port", "protocol", "timestamp"
+    ]
+
+    feature_cols = df.drop(columns=metadata_cols)
 
     for i in range(len(df)):
-        row = df.iloc[[i]]
+        meta = df.iloc[i][metadata_cols]
+        row = df.iloc[[i]][feature_cols]
         network_status = binary_layer(row, binary_model)
         
         if network_status == "BENIGN":
-            print(f"[{i}] BENIGN")
+            print(f"Status: BENIGN | {meta['src_ip']} -> {meta['dst_ip']} : [{i}]")
             continue
             
         attack_type = attack_layer(row, attack_model)
-        print(f"[{i}] ATTACK: {attack_type}")
+        print(f"!!! ALERT !!!")
+        print(f"Type: {attack_type}")
+        print(f"Source: {meta['src_ip']}:{meta['src_port']}")
+        print(f"Target: {meta['dst_ip']}:{meta['dst_port']}")
+        print(f"Time: {meta['timestamp']}")
+        print(f"----------------------------------------------")
 
 def main(binary_model, attack_model): 
     '''

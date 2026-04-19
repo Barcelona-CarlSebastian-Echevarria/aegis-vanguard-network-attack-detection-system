@@ -13,14 +13,9 @@ def preprocess_flows(converted_flows):
     df_converted_flows = pd.read_csv(converted_flows, encoding='latin-1')
     df_converted_flows = df_converted_flows.copy()
 
-    # Drop unnecessary columns
-    df_converted_flows = df_converted_flows.drop(columns=[
-        "src_ip", "dst_ip", "src_port", "dst_port",
-        "protocol", "timestamp"
-    ], errors="ignore")
-
     # Impute values in the dataset
-    df_converted_flows = pd.DataFrame(np.nan_to_num(df_converted_flows, nan=0.0, posinf=0.0, neginf=0.0),
+    cols_to_clean = df_converted_flows.select_dtypes(include=[np.number]).columns
+    df_converted_flows[cols_to_clean] = pd.DataFrame(np.nan_to_num(df_converted_flows[cols_to_clean], nan=0.0, posinf=0.0, neginf=0.0),
                     columns=df_converted_flows.columns,
                     index=df_converted_flows.index)
     
@@ -31,9 +26,9 @@ def preprocess_flows(converted_flows):
     # Rename the columns as the original
     df_converted_flows.rename(columns=RENAME_MAP, inplace=True)
     # Fix the order of the columns like the original
-    expected_order = [name for name in RENAME_MAP.values() if name in df_converted_flows.columns]
-    df_converted_flows = df_converted_flows[expected_order]
-    print(df_converted_flows.columns)
+    # expected_order = [name for name in RENAME_MAP.values() if name in df_converted_flows.columns]
+    # df_converted_flows = df_converted_flows[expected_order]
+    # print(df_converted_flows.columns)
     
     return df_converted_flows
 
