@@ -10,27 +10,30 @@ def get_timestamp():
     return datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
 def preprocess_flows(converted_flows):
-    df_converted_flows = pd.read_csv(converted_flows, encoding='latin-1')
-    df_converted_flows = df_converted_flows.copy()
+    try:
+        df_converted_flows = pd.read_csv(converted_flows, encoding='latin-1')
+        df_converted_flows = df_converted_flows.copy()
 
-    # Impute values in the dataset
-    cols_to_clean = df_converted_flows.select_dtypes(include=[np.number]).columns
-    df_converted_flows[cols_to_clean] = pd.DataFrame(np.nan_to_num(df_converted_flows[cols_to_clean], nan=0.0, posinf=0.0, neginf=0.0),
-                    columns=df_converted_flows[cols_to_clean].columns,
-                    index=df_converted_flows[cols_to_clean].index)
-    
-    # Detect inf and nan vals
-    if np.any(np.isinf(df_converted_flows[cols_to_clean].values)) or np.any(np.isnan(df_converted_flows[cols_to_clean].values)):
-        print("Warning: Data still contains inf or nan values")
+        # Impute values in the dataset
+        cols_to_clean = df_converted_flows.select_dtypes(include=[np.number]).columns
+        df_converted_flows[cols_to_clean] = pd.DataFrame(np.nan_to_num(df_converted_flows[cols_to_clean], nan=0.0, posinf=0.0, neginf=0.0),
+                        columns=df_converted_flows[cols_to_clean].columns,
+                        index=df_converted_flows[cols_to_clean].index)
+        
+        # Detect inf and nan vals
+        if np.any(np.isinf(df_converted_flows[cols_to_clean].values)) or np.any(np.isnan(df_converted_flows[cols_to_clean].values)):
+            print("Warning: Data still contains inf or nan values")
 
-    # Rename the columns as the original
-    df_converted_flows.rename(columns=RENAME_MAP, inplace=True)
-    # Fix the order of the columns like the original
-    # expected_order = [name for name in RENAME_MAP.values() if name in df_converted_flows.columns]
-    # df_converted_flows = df_converted_flows[expected_order]
-    # print(df_converted_flows.columns)
-    
-    return df_converted_flows
+        # Rename the columns as the original
+        df_converted_flows.rename(columns=RENAME_MAP, inplace=True)
+        # Fix the order of the columns like the original
+        # expected_order = [name for name in RENAME_MAP.values() if name in df_converted_flows.columns]
+        # df_converted_flows = df_converted_flows[expected_order]
+        # print(df_converted_flows.columns)
+        
+        return df_converted_flows
+    except pd.errors.EmptyDataError:
+        return pd.DataFrame()
 
 def convert_packets(pcap_path, output_name: str = None):
     if not isinstance(output_name, str) and output_name is not None:

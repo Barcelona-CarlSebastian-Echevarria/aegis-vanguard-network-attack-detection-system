@@ -27,8 +27,6 @@ def binary_layer(X, binary_model):
     if pred[0] == 0:
         return "BENIGN"
 
-
-# 
 def attack_layer(X, attack_model):
     '''
     Classifies the type of attack detected according to the encoded map from training
@@ -66,6 +64,7 @@ def predict(df, binary_model, attack_model):
 
     for index, row in feature_cols.iterrows():
         meta = df.loc[index]
+        # Feed the model row by row
         row_df = pd.DataFrame([row], columns=feature_cols.columns)
         network_status = binary_layer(row_df, binary_model)
         
@@ -75,6 +74,7 @@ def predict(df, binary_model, attack_model):
         if network_status == "ATTACK":  
             attack_type = attack_layer(row_df, attack_model)
             print(f"!!! ALERT !!!")
+            print(f"File: ")
             print(f"Type: {attack_type}")
             print(f"Source: {meta['src_ip']}:{meta['src_port']}")
             print(f"Target: {meta['dst_ip']}:{meta['dst_port']}")
@@ -104,32 +104,59 @@ def main(binary_model, attack_model):
             print(f"Processing: {file}")
             df = pd.read_csv(file_path)
 
-            if not df.empty:
+            if df.empty:
+                print(f'{file_path} skipped: Empty df')
+            else:
+                print()
+                print(f"---------START---------")
+                print(f"----File:{file_path}----")
                 predict(df, binary_model, attack_model) 
+                print(f"----File:{file_path}----")
+                print(f"---------!END!---------")
+                print()
 
             # After the file is scanned, it will be moved to converted_flows/scanned
             destination = os.path.join(SCANNED_DIR, file)
             shutil.move(file_path, destination)
-            print(f"Moved to scanned: {file}")
 
         except Exception as e:
             print(f"Error processing {file}: {e}")
+    
+def run(models: list, capture_seconds: int = 10, interface="eth0", cycle: str = None):
+    count = 0
+    try: 
+        while cycle is None or count < cycle:
+                print(f"Started on {interface}. Iteration {count}")
+                count += 1
+                pcap_file = capture(capture_seconds=capture_seconds, interface=interface)
+                if not os.path.exists(pcap_file):
+                    print("PCAP not found:", pcap_file)
+                print("PCAP created:", pcap_file)
+
+                csv_path, df = convert_packets(pcap_file)
+                if not os.path.exists(csv_path):
+                    print("CSV not found:", csv_path)
+                print("CSV created:", csv_path)
+                
+                # Feed to the model
+                main(models["binary_model"], models["attack_model"])
+
+    except KeyboardInterrupt:
+        print("Interrupted")
+            
 
 if __name__ == '__main__':
 
-    binary_model = joblib.load(BINARY_MODEL)
-    attack_model = joblib.load(CLASSIFIER_MODEL)
-    
-    pcap_file = capture(capture_seconds=10, interface="eth0")
-    if not os.path.exists(pcap_file):
-        print("PCAP not found:", pcap_file)
-    print("PCAP created:", pcap_file)
+    models = {
+        "binary_model": joblib.load(BINARY_MODEL),
+        "attack_model": joblib.load(CLASSIFIER_MODEL),
+    }
 
-    csv_path, df = convert_packets(pcap_file)
-    if not os.path.exists(csv_path):
-        print("CSV not found:", csv_path)
-    print("CSV created:", csv_path)
+    run(models=models, capture_seconds=10, interface="eth0", cycle= None)
+
+
     
-    # Feed to the model
-    main(binary_model, attack_model)
+
+    
+
 
