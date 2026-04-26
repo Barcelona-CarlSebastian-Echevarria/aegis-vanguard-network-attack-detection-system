@@ -4,6 +4,7 @@ import joblib
 import subprocess
 import os
 import shutil
+from pathlib import Path
 
 from app.config import *
 from data_pipeline.packet_capture import *
@@ -105,20 +106,26 @@ def main(binary_model, attack_model):
             df = pd.read_csv(file_path)
 
             if df.empty:
-                print(f'{file_path} skipped: Empty df')
+                print(f'{file_path} skipped and deleted: Empty df')
+                os.remove(file_path)
             else:
                 print()
                 print(f"---------START---------")
-                print(f"----File:{file_path}----")
+                print(f"File:{file_path}")
                 predict(df, binary_model, attack_model) 
-                print(f"----File:{file_path}----")
+                print(f"File:{file_path}")
                 print(f"---------!END!---------")
                 print()
 
             # After the file is scanned, it will be moved to converted_flows/scanned
             destination = os.path.join(SCANNED_DIR, file)
             shutil.move(file_path, destination)
-
+            
+        except pd.errors.EmptyDataError:
+            # Clear the entire incoming directory upon every iteration to delete empty csvs
+            print(f"Parsing error on {file}. Deleting file.")
+            if os.path.exists(file_path):
+                os.remove(file_path)
         except Exception as e:
             print(f"Error processing {file}: {e}")
     
@@ -144,7 +151,6 @@ def run(models: list, capture_seconds: int = 10, interface="eth0", cycle: str = 
     except KeyboardInterrupt:
         print("Interrupted")
             
-
 if __name__ == '__main__':
 
     models = {
