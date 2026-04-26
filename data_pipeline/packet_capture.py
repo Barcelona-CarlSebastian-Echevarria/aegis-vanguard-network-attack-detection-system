@@ -16,11 +16,11 @@ def preprocess_flows(converted_flows):
     # Impute values in the dataset
     cols_to_clean = df_converted_flows.select_dtypes(include=[np.number]).columns
     df_converted_flows[cols_to_clean] = pd.DataFrame(np.nan_to_num(df_converted_flows[cols_to_clean], nan=0.0, posinf=0.0, neginf=0.0),
-                    columns=df_converted_flows.columns,
-                    index=df_converted_flows.index)
+                    columns=df_converted_flows[cols_to_clean].columns,
+                    index=df_converted_flows[cols_to_clean].index)
     
     # Detect inf and nan vals
-    if np.any(np.isinf(df_converted_flows.values)) or np.any(np.isnan(df_converted_flows.values)):
+    if np.any(np.isinf(df_converted_flows[cols_to_clean].values)) or np.any(np.isnan(df_converted_flows[cols_to_clean].values)):
         print("Warning: Data still contains inf or nan values")
 
     # Rename the columns as the original
@@ -81,7 +81,7 @@ def capture(capture_seconds: int, interface="wlan0"):  # wlan0 = WiFi, eth0 = Et
 
 # Local Testing
 if __name__ == '__main__':
-    pcap_file = capture(capture_seconds=5, interface="eth0")
+    pcap_file = capture(capture_seconds=10, interface="eth0")
     if not os.path.exists(pcap_file):
         print("PCAP not found:", pcap_file)
     else:

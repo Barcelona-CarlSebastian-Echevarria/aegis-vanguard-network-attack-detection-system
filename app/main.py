@@ -20,11 +20,13 @@ def binary_layer(X, binary_model):
 
     X = X.copy()
     pred = binary_model.predict(X)
+    pred = pred.tolist()
 
-    if len(pred) == 1:
-        if pred[0] == 0:
-            return "BENIGN"
+    if pred[0] == 1:
         return "ATTACK"
+    if pred[0] == 0:
+        return "BENIGN"
+
 
 # 
 def attack_layer(X, attack_model):
@@ -62,22 +64,24 @@ def predict(df, binary_model, attack_model):
 
     feature_cols = df.drop(columns=metadata_cols)
 
-    for i in range(len(df)):
-        meta = df.iloc[i][metadata_cols]
-        row = df.iloc[[i]][feature_cols]
-        network_status = binary_layer(row, binary_model)
+    for index, row in feature_cols.iterrows():
+        meta = df.loc[index]
+        row_df = pd.DataFrame([row], columns=feature_cols.columns)
+        network_status = binary_layer(row_df, binary_model)
         
         if network_status == "BENIGN":
-            print(f"Status: BENIGN | {meta['src_ip']} -> {meta['dst_ip']} : [{i}]")
+            print(f"Status: BENIGN | {meta['src_ip']} -> {meta['dst_ip']}: {meta['timestamp']}")
             continue
-            
-        attack_type = attack_layer(row, attack_model)
-        print(f"!!! ALERT !!!")
-        print(f"Type: {attack_type}")
-        print(f"Source: {meta['src_ip']}:{meta['src_port']}")
-        print(f"Target: {meta['dst_ip']}:{meta['dst_port']}")
-        print(f"Time: {meta['timestamp']}")
-        print(f"----------------------------------------------")
+        if network_status == "ATTACK":  
+            attack_type = attack_layer(row_df, attack_model)
+            print(f"!!! ALERT !!!")
+            print(f"Type: {attack_type}")
+            print(f"Source: {meta['src_ip']}:{meta['src_port']}")
+            print(f"Target: {meta['dst_ip']}:{meta['dst_port']}")
+            print(f"Protocol: {meta['protocol']}")
+            print(f"Time: {meta['timestamp']}")
+            print(f"----------------------------------------------")
+            continue
 
 def main(binary_model, attack_model): 
     '''
@@ -116,7 +120,7 @@ if __name__ == '__main__':
     binary_model = joblib.load(BINARY_MODEL)
     attack_model = joblib.load(CLASSIFIER_MODEL)
     
-    pcap_file = capture(capture_seconds=5, interface="eth0")
+    pcap_file = capture(capture_seconds=10, interface="eth0")
     if not os.path.exists(pcap_file):
         print("PCAP not found:", pcap_file)
     print("PCAP created:", pcap_file)
