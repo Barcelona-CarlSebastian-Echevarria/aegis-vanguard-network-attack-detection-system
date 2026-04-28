@@ -27,11 +27,10 @@ def preprocess_flows(converted_flows):
         # Rename the columns as the original
         df_converted_flows.rename(columns=RENAME_MAP, inplace=True)
         # Fix the order of the columns like the original
-        # expected_order = [name for name in RENAME_MAP.values() if name in df_converted_flows.columns]
-        # df_converted_flows = df_converted_flows[expected_order]
-        # print(df_converted_flows.columns)
-        
+        df_converted_flows = df_converted_flows[ORDER_MAP]
+        print(df_converted_flows.columns)
         return df_converted_flows
+    
     except pd.errors.EmptyDataError:
         return pd.DataFrame()
 

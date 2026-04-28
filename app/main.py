@@ -158,7 +158,7 @@ if __name__ == '__main__':
         "attack_model": joblib.load(CLASSIFIER_MODEL),
     }
 
-    run(models=models, capture_seconds=10, interface="eth0", cycle= None)
+    run(models=models, capture_seconds=100, interface="eth0", cycle= None)
 
 
     
