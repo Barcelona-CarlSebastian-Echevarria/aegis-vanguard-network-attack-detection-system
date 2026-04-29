@@ -98,6 +98,10 @@ RENAME_MAP = {
     'idle_min': 'Idle Min'
     }
 
+METADATA_COLS = [
+        "src_ip", "dst_ip", "src_port", "dst_port", "protocol", "timestamp"
+    ]
+
 ORDER_MAP = ['src_ip', 'dst_ip', 'src_port', 'dst_port', 'protocol', 'timestamp',
              'Flow Duration', 'Total Fwd Packets', 'Total Backward Packets',
        'Total Length of Fwd Packets', 'Total Length of Bwd Packets',

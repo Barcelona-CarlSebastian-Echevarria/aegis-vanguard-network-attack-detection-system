@@ -57,11 +57,8 @@ def predict(df, binary_model, attack_model):
     ''' 
     Predict the incoming flows 
     '''
-    metadata_cols = [
-        "src_ip", "dst_ip", "src_port", "dst_port", "protocol", "timestamp"
-    ]
 
-    feature_cols = df.drop(columns=metadata_cols)
+    feature_cols = df.drop(columns=METADATA_COLS)
 
     for index, row in feature_cols.iterrows():
         meta = df.loc[index]
