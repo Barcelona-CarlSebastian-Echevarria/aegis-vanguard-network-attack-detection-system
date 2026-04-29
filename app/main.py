@@ -21,7 +21,9 @@ def binary_layer(X, binary_model):
 
     X = X.copy()
     pred = binary_model.predict(X)
+    pred_proba = binary_model.predict_proba(X)
     pred = pred.tolist()
+    print(pred_proba)
 
     if pred[0] == 1:
         return "ATTACK"
@@ -155,7 +157,7 @@ if __name__ == '__main__':
         "attack_model": joblib.load(CLASSIFIER_MODEL),
     }
 
-    run(models=models, capture_seconds=100, interface="eth0", cycle= None)
+    run(models=models, capture_seconds=240, interface="eth0", cycle= None)
 
 
     
